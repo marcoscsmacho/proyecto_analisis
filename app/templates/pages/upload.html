@@ -1,0 +1,297 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Subir Archivo - Análisis de Datos{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Encabezado -->
+            <div class="text-center mb-5">
+                <h1 class="text-gradient mb-3">
+                    <i class="fas fa-upload me-3"></i>Subir Archivo de Datos
+                </h1>
+                <p class="lead text-muted">
+                    Sube un archivo CSV o Excel para generar análisis automático con gráficas y estadísticas
+                </p>
+            </div>
+
+            <!-- Formulario de subida -->
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <form id="uploadForm" method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Información del proyecto -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="projectName" class="form-label">Nombre del Proyecto</label>
+                                {{ form.project_name(class="form-control form-control-lg", id="projectName", placeholder="Ej: Análisis de Ventas Q3") }}
+                                {% if form.project_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.project_name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="projectDesc" class="form-label">Descripción (Opcional)</label>
+                                {{ form.description(class="form-control form-control-lg", id="projectDesc", placeholder="Breve descripción del análisis") }}
+                            </div>
+                        </div>
+
+                        <!-- Zona de drag & drop -->
+                        <div class="file-upload-area" id="fileDropArea">
+                            <div class="text-center">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                <h4>Arrastra tu archivo aquí</h4>
+                                <p class="text-muted mb-3">o haz clic para seleccionar</p>
+                                
+                                {{ form.file(class="d-none", id="fileInput", accept=".csv,.xlsx,.xls") }}
+                                
+                                <button type="button" class="btn btn-outline-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-folder-open me-2"></i>Seleccionar Archivo
+                                </button>
+                                
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Formatos soportados: CSV, XLSX, XLS (Máximo 16MB)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información del archivo seleccionado -->
+                        <div id="fileInfo" class="mt-4" style="display: none;">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-file me-2"></i>Archivo seleccionado:</h6>
+                                <div id="fileDetails"></div>
+                            </div>
+                        </div>
+
+                        <!-- Preview de datos -->
+                        <div id="dataPreview" class="mt-4" style="display: none;">
+                            <h5><i class="fas fa-eye me-2"></i>Vista Previa de Datos</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered" id="previewTable">
+                                    <thead class="bg-light"></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Barra de progreso -->
+                        <div id="progressContainer" class="mt-4" style="display: none;">
+                            <h6>Procesando archivo...</h6>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%" id="progressBar">
+                                    0%
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-between mt-5">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                <i class="fas fa-chart-line me-2"></i>Procesar y Analizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="row mt-5">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-bar fa-2x text-primary mb-3"></i>
+                            <h5>Análisis Automático</h5>
+                            <p class="text-muted">Genera gráficas de barras, dispersión y mapas de calor automáticamente.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <i class="fas fa-file-pdf fa-2x text-danger mb-3"></i>
+                            <h5>Reporte en PDF</h5>
+                            <p class="text-muted">Descarga un reporte completo con todas las visualizaciones y estadísticas.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileDropArea = document.getElementById('fileDropArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileDetails = document.getElementById('fileDetails');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Prevenir comportamientos por defecto para drag & drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Efectos visuales para drag & drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        fileDropArea.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        fileDropArea.classList.remove('dragover');
+    }
+
+    // Manejar archivos soltados
+    fileDropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect();
+        }
+    }
+
+    // Manejar selección de archivo
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            hideFileInfo();
+            return;
+        }
+
+        // Validar archivo
+        if (!validateFile(file)) {
+            hideFileInfo();
+            return;
+        }
+
+        // Mostrar información del archivo
+        showFileInfo(file);
+        
+        // Habilitar botón de envío
+        submitBtn.disabled = false;
+    }
+
+    function validateFile(file) {
+        const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        const allowedExtensions = ['csv', 'xls', 'xlsx'];
+        const maxSize = 16 * 1024 * 1024; // 16MB
+
+        // Validar extensión
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!allowedExtensions.includes(extension)) {
+            showNotification('Tipo de archivo no permitido. Solo se permiten archivos CSV, XLS y XLSX.', 'danger');
+            return false;
+        }
+
+        // Validar tamaño
+        if (file.size > maxSize) {
+            showNotification('El archivo es demasiado grande. Máximo permitido: 16MB.', 'danger');
+            return false;
+        }
+
+        return true;
+    }
+
+    function showFileInfo(file) {
+        const size = (file.size / (1024 * 1024)).toFixed(2);
+        const extension = file.name.split('.').pop().toUpperCase();
+        
+        fileDetails.innerHTML = `
+            <div class="row">
+                <div class="col-md-8">
+                    <strong>${file.name}</strong><br>
+                    <small class="text-muted">Tamaño: ${size} MB | Tipo: ${extension}</small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-success">✓ Válido</span>
+                </div>
+            </div>
+        `;
+        
+        fileInfo.style.display = 'block';
+    }
+
+    function hideFileInfo() {
+        fileInfo.style.display = 'none';
+        submitBtn.disabled = true;
+    }
+
+    // Manejar envío del formulario
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fileInput.files[0]) {
+            showNotification('Por favor selecciona un archivo.', 'warning');
+            return;
+        }
+
+        // Mostrar progreso
+        showProgress();
+        
+        // Simular progreso (en implementación real, esto vendría del servidor)
+        simulateProgress();
+        
+        // Enviar formulario
+        setTimeout(() => {
+            uploadForm.submit();
+        }, 2000);
+    });
+
+    function showProgress() {
+        progressContainer.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+    }
+
+    function simulateProgress() {
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 30;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+            }
+            
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }, 200);
+    }
+});
+</script>
+{% endblock %}

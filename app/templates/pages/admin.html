@@ -1,0 +1,651 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Panel de Administración - Análisis de Datos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="text-gradient mb-0">
+                        <i class="fas fa-users-cog me-3"></i>Panel de Administración
+                    </h1>
+                    <p class="text-muted">Gestiona usuarios, proyectos y estadísticas del sistema</p>
+                </div>
+                <div>
+                    <span class="badge bg-danger fs-6">
+                        <i class="fas fa-shield-alt me-1"></i>Solo Administradores
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas del sistema -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Usuarios</h6>
+                            <h2 class="mb-0">{{ stats.total_users }}</h2>
+                            <small>{{ stats.active_users }} activos</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Proyectos</h6>
+                            <h2 class="mb-0">{{ stats.total_projects }}</h2>
+                            <small>{{ stats.completed_projects }} completados</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-folder fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Tasa de Éxito</h6>
+                            <h2 class="mb-0">{{ "%.1f"|format((stats.completed_projects / stats.total_projects * 100) if stats.total_projects > 0 else 0) }}%</h2>
+                            <small>Proyectos completados</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Almacenamiento</h6>
+                            <h2 class="mb-0">--</h2>
+                            <small>Archivos subidos</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-hdd fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas de navegación -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Usuarios
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab">
+                        <i class="fas fa-folder me-2"></i>Proyectos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
+                        <i class="fas fa-cog me-2"></i>Sistema
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Contenido de las pestañas -->
+    <div class="tab-content" id="adminTabsContent">
+        
+        <!-- Pestaña Usuarios -->
+        <div class="tab-pane fade show active" id="users" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Gestión de Usuarios
+                    </h5>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#newUserModal">
+                        <i class="fas fa-plus me-1"></i>Nuevo Usuario
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros de usuarios -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="userSearch" placeholder="Buscar usuarios...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="roleFilter">
+                                <option value="">Todos los roles</option>
+                                <option value="admin">Administradores</option>
+                                <option value="analista">Analistas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="active">Activos</option>
+                                <option value="inactive">Inactivos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de usuarios -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Proyectos</th>
+                                    <th>Registro</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in recent_users %}
+                                <tr class="user-row">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 40px; height: 40px;">
+                                                {{ user.first_name[0]|upper }}{{ user.last_name[0]|upper }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ user.full_name }}</strong>
+                                                <br><small class="text-muted">@{{ user.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.role == 'admin' %}
+                                            <span class="badge bg-danger">Administrador</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">Analista</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ user.projects|length }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ user.created_at.strftime('%d/%m/%Y') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="Editar usuario">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% if user.id != current_user.id %}
+                                                <button class="btn btn-outline-warning toggle-status-btn" 
+                                                        data-user-id="{{ user.id }}"
+                                                        data-current-status="{{ user.is_active }}"
+                                                        title="{{ 'Desactivar' if user.is_active else 'Activar' }} usuario">
+                                                    <i class="fas fa-{{ 'pause' if user.is_active else 'play' }}"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Proyectos -->
+        <div class="tab-pane fade" id="projects" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-folder me-2"></i>Todos los Proyectos del Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros de proyectos -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="projectSearch" placeholder="Buscar proyectos...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="projectStatusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="completed">Completados</option>
+                                <option value="processing">Procesando</option>
+                                <option value="uploaded">Subidos</option>
+                                <option value="error">Con errores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="projectOwnerFilter">
+                                <option value="">Todos los usuarios</option>
+                                {% for user in recent_users %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de proyectos -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Proyecto</th>
+                                    <th>Propietario</th>
+                                    <th>Archivo</th>
+                                    <th>Estado</th>
+                                    <th>Dimensiones</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in recent_projects %}
+                                <tr class="project-row">
+                                    <td>
+                                        <strong>{{ project.name }}</strong>
+                                        {% if project.description %}
+                                            <br><small class="text-muted">{{ project.description[:50] }}...</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                                 style="width: 30px; height: 30px; font-size: 12px;">
+                                                {{ project.owner.first_name[0]|upper }}{{ project.owner.last_name[0]|upper }}
+                                            </div>
+                                            <div>
+                                                <small>{{ project.owner.full_name }}</small>
+                                                <br><small class="text-muted">@{{ project.owner.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if project.file_type == 'csv' %}
+                                                <i class="fas fa-file-csv text-success me-2"></i>
+                                            {% else %}
+                                                <i class="fas fa-file-excel text-success me-2"></i>
+                                            {% endif %}
+                                            <div>
+                                                <small>{{ project.original_filename }}</small>
+                                                <br><small class="text-muted">{{ project.file_size_mb }} MB</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if project.status == 'completed' %}
+                                            <span class="badge bg-success">Completado</span>
+                                        {% elif project.status == 'processing' %}
+                                            <span class="badge bg-warning">Procesando</span>
+                                        {% elif project.status == 'error' %}
+                                            <span class="badge bg-danger">Error</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Subido</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if project.rows_count and project.columns_count %}
+                                            <small>{{ "{:,}".format(project.rows_count) }} × {{ project.columns_count }}</small>
+                                        {% else %}
+                                            <small class="text-muted">—</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ project.created_at.strftime('%d/%m/%Y') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('main.project_detail', project_id=project.id) }}" 
+                                               class="btn btn-outline-primary" title="Ver proyecto">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger delete-project-btn" 
+                                                    data-project-id="{{ project.id }}"
+                                                    data-project-name="{{ project.name|e }}"
+                                                    title="Eliminar proyecto">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Sistema -->
+        <div class="tab-pane fade" id="system" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-server me-2"></i>Información del Sistema
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Versión de la aplicación:</strong></td>
+                                    <td>1.0.0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Framework:</strong></td>
+                                    <td>Flask 2.3.3</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Base de datos:</strong></td>
+                                    <td>MySQL</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Python:</strong></td>
+                                    <td>3.x</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Estado del sistema:</strong></td>
+                                    <td><span class="badge bg-success">Operativo</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tools me-2"></i>Herramientas de Administración
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" onclick="showMaintenanceInfo()">
+                                    <i class="fas fa-database me-2"></i>Información de BD
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="showBackupInfo()">
+                                    <i class="fas fa-download me-2"></i>Respaldo de Datos
+                                </button>
+                                <button class="btn btn-outline-info" onclick="showLogsInfo()">
+                                    <i class="fas fa-file-alt me-2"></i>Ver Logs del Sistema
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="showSystemStats()">
+                                    <i class="fas fa-chart-bar me-2"></i>Estadísticas Detalladas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo usuario -->
+<div class="modal fade" id="newUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newUserForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="firstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Apellido</label>
+                            <input type="text" class="form-control" id="lastName" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select class="form-select" id="role" required>
+                            <option value="analista">Analista</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="createUser()">Crear Usuario</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners para eliminar proyectos
+    document.querySelectorAll('.delete-project-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const projectId = this.getAttribute('data-project-id');
+            const projectName = this.getAttribute('data-project-name');
+            deleteProject(projectId, projectName);
+        });
+    });
+
+    // Event listeners para cambiar estado de usuarios
+    document.querySelectorAll('.toggle-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const currentStatus = this.getAttribute('data-current-status') === 'True';
+            toggleUserStatus(userId, currentStatus);
+        });
+    });
+});
+
+// Funciones de filtrado
+function filterUsers() {
+    // Implementar filtrado de usuarios
+    console.log('Filtrando usuarios...');
+}
+
+function filterProjects() {
+    // Implementar filtrado de proyectos
+    console.log('Filtrando proyectos...');
+}
+
+// Crear nuevo usuario
+function createUser() {
+    const formData = {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value
+    };
+
+    // Validar campos
+    if (!formData.firstName || !formData.lastName || !formData.username || !formData.email || !formData.password) {
+        showNotification('Por favor completa todos los campos', 'warning');
+        return;
+    }
+
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        showNotification('Por favor ingresa un email válido', 'warning');
+        return;
+    }
+
+    // Validar contraseña
+    if (formData.password.length < 6) {
+        showNotification('La contraseña debe tener al menos 6 caracteres', 'warning');
+        return;
+    }
+
+    // Deshabilitar botón mientras se procesa
+    const submitBtn = document.querySelector('#newUserModal .btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
+
+    // Enviar petición AJAX
+    fetch('/admin/create-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+            
+            // Limpiar formulario
+            document.getElementById('newUserForm').reset();
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newUserModal'));
+            modal.hide();
+            
+            // Recargar página para mostrar el nuevo usuario
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+            
+        } else {
+            showNotification(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showNotification('Error de conexión: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        // Rehabilitar botón
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
+}
+
+// Cambiar estado de usuario
+function toggleUserStatus(userId, currentStatus) {
+    const action = currentStatus ? 'desactivar' : 'activar';
+    
+    if (confirm(`¿Estás seguro de que quieres ${action} este usuario?`)) {
+        showNotification(`${action.charAt(0).toUpperCase() + action.slice(1)}ando usuario...`, 'info');
+        
+        fetch('/admin/toggle-user-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: userId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                
+                // Actualizar la página para reflejar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } else {
+                showNotification(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión: ' + error.message, 'danger');
+        });
+    }
+}
+
+// Eliminar proyecto (admin)
+function deleteProject(projectId, projectName) {
+    if (confirm(`¿Estás seguro de que quieres eliminar el proyecto "${projectName}"?\n\nEsta acción no se puede deshacer.`)) {
+        showNotification('Eliminando proyecto...', 'warning');
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/project/${projectId}/delete`;
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Funciones del sistema
+function showMaintenanceInfo() {
+    showNotification('Información de BD: Funcionalidad pendiente de implementar', 'info');
+}
+
+function showBackupInfo() {
+    showNotification('Respaldo de datos: Funcionalidad pendiente de implementar', 'info');
+}
+
+function showLogsInfo() {
+    showNotification('Logs del sistema: Funcionalidad pendiente de implementar', 'info');
+}
+
+function showSystemStats() {
+    showNotification('Estadísticas detalladas: Funcionalidad pendiente de implementar', 'info');
+}
+</script>
+{% endblock %}

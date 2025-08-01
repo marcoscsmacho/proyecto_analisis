@@ -1,0 +1,389 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Mis Proyectos - Análisis de Datos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="text-gradient mb-0">
+                        <i class="fas fa-folder me-3"></i>Mis Proyectos
+                    </h1>
+                    <p class="text-muted">Gestiona todos tus proyectos de análisis de datos</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('main.upload') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Nuevo Proyecto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total</h6>
+                            <h2 class="mb-0">{{ projects|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-folder fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Completados</h6>
+                            <h2 class="mb-0">{{ projects|selectattr('status', 'equalto', 'completed')|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Procesando</h6>
+                            <h2 class="mb-0">{{ projects|selectattr('status', 'equalto', 'processing')|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-spinner fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Con Errores</h6>
+                            <h2 class="mb-0">{{ projects|selectattr('status', 'equalto', 'error')|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Buscar por nombre o archivo...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="completed">Completados</option>
+                                <option value="processing">Procesando</option>
+                                <option value="uploaded">Subidos</option>
+                                <option value="error">Con errores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="typeFilter">
+                                <option value="">Todos los tipos</option>
+                                <option value="csv">CSV</option>
+                                <option value="xlsx">Excel (XLSX)</option>
+                                <option value="xls">Excel (XLS)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de proyectos -->
+    <div class="row">
+        <div class="col-12">
+            {% if projects %}
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Lista de Proyectos
+                            <span class="badge bg-light text-dark ms-2" id="projectCount">{{ projects|length }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="projectsTable">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Proyecto</th>
+                                        <th>Archivo</th>
+                                        <th>Estado</th>
+                                        <th>Dimensiones</th>
+                                        <th>Fecha</th>
+                                        <th>Análisis</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for project in projects %}
+                                    <tr data-project-id="{{ project.id }}" class="project-row">
+                                        <td>
+                                            <div>
+                                                <strong class="project-name">{{ project.name }}</strong>
+                                                {% if project.description %}
+                                                    <br><small class="text-muted">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if project.file_type == 'csv' %}
+                                                    <i class="fas fa-file-csv text-success fa-lg me-2"></i>
+                                                {% elif project.file_type in ['xlsx', 'xls'] %}
+                                                    <i class="fas fa-file-excel text-success fa-lg me-2"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file text-secondary fa-lg me-2"></i>
+                                                {% endif %}
+                                                <div>
+                                                    <div class="project-filename">{{ project.original_filename }}</div>
+                                                    <small class="text-muted">{{ project.file_size_mb }} MB • {{ project.file_type.upper() }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if project.status == 'completed' %}
+                                                <span class="badge bg-success" data-status="completed">
+                                                    <i class="fas fa-check me-1"></i>Completado
+                                                </span>
+                                            {% elif project.status == 'processing' %}
+                                                <span class="badge bg-warning" data-status="processing">
+                                                    <i class="fas fa-spinner fa-spin me-1"></i>Procesando
+                                                </span>
+                                            {% elif project.status == 'error' %}
+                                                <span class="badge bg-danger" data-status="error">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Error
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary" data-status="uploaded">
+                                                    <i class="fas fa-upload me-1"></i>Subido
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if project.rows_count and project.columns_count %}
+                                                <div>
+                                                    <strong>{{ "{:,}".format(project.rows_count) }}</strong> filas
+                                                    <br><small class="text-muted">{{ project.columns_count }} columnas</small>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div>
+                                                {{ project.created_at.strftime('%d/%m/%Y') }}
+                                                <br><small class="text-muted">{{ project.created_at.strftime('%H:%M') }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                {% if project.has_charts %}
+                                                    <i class="fas fa-chart-bar text-primary" title="Tiene gráficas"></i>
+                                                {% endif %}
+                                                {% if project.has_statistics %}
+                                                    <i class="fas fa-calculator text-info ms-1" title="Tiene estadísticas"></i>
+                                                {% endif %}
+                                                {% if project.has_report %}
+                                                    <i class="fas fa-file-pdf text-danger ms-1" title="Tiene reporte PDF"></i>
+                                                {% endif %}
+                                                {% if not project.has_charts and not project.has_statistics and not project.has_report %}
+                                                    <span class="text-muted">—</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('main.project_detail', project_id=project.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                
+                                                {% if project.status == 'completed' and project.has_report %}
+                                                    <a href="{{ url_for('main.download_pdf', project_id=project.id) }}" 
+                                                       class="btn btn-sm btn-outline-success" title="Descargar PDF">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                {% endif %}
+                                                
+                                                {% if current_user.is_admin() or project.user_id == current_user.id %}
+                                                    <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                                            data-project-id="{{ project.id }}"
+                                                            data-project-name="{{ project.name|e }}"
+                                                            title="Eliminar proyecto">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Estado vacío -->
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-folder-open fa-4x text-muted mb-4"></i>
+                        <h4 class="text-muted">No tienes proyectos aún</h4>
+                        <p class="text-muted mb-4">¡Sube tu primer archivo para comenzar a analizar datos!</p>
+                        <a href="{{ url_for('main.upload') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload me-2"></i>Subir Primer Archivo
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const projectRows = document.querySelectorAll('.project-row');
+    const projectCount = document.getElementById('projectCount');
+
+    // Event listeners para botones de eliminar
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const projectId = this.getAttribute('data-project-id');
+            const projectName = this.getAttribute('data-project-name');
+            deleteProject(projectId, projectName);
+        });
+    });
+
+    // Función para filtrar proyectos
+    function filterProjects() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const typeValue = typeFilter.value;
+        let visibleCount = 0;
+
+        projectRows.forEach(row => {
+            const projectName = row.querySelector('.project-name').textContent.toLowerCase();
+            const fileName = row.querySelector('.project-filename').textContent.toLowerCase();
+            const status = row.querySelector('[data-status]').getAttribute('data-status');
+            const projectId = row.getAttribute('data-project-id');
+            
+            // Obtener tipo de archivo del HTML (necesario mejorar esto)
+            const fileTypeElement = row.querySelector('i.fa-file-csv, i.fa-file-excel');
+            let fileType = '';
+            if (fileTypeElement && fileTypeElement.classList.contains('fa-file-csv')) {
+                fileType = 'csv';
+            } else if (fileTypeElement && fileTypeElement.classList.contains('fa-file-excel')) {
+                fileType = 'xlsx'; // Simplificado
+            }
+
+            // Aplicar filtros
+            const matchesSearch = projectName.includes(searchTerm) || fileName.includes(searchTerm);
+            const matchesStatus = !statusValue || status === statusValue;
+            const matchesType = !typeValue || fileType === typeValue;
+
+            if (matchesSearch && matchesStatus && matchesType) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Actualizar contador
+        if (projectCount) {
+            projectCount.textContent = visibleCount;
+        }
+    }
+
+    // Event listeners para filtros
+    searchInput.addEventListener('input', filterProjects);
+    statusFilter.addEventListener('change', filterProjects);
+    typeFilter.addEventListener('change', filterProjects);
+});
+
+// Limpiar filtros
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('typeFilter').value = '';
+    
+    // Mostrar todas las filas
+    document.querySelectorAll('.project-row').forEach(row => {
+        row.style.display = '';
+    });
+    
+    // Actualizar contador
+    const projectCount = document.getElementById('projectCount');
+    if (projectCount) {
+        projectCount.textContent = document.querySelectorAll('.project-row').length;
+    }
+}
+
+// Eliminar proyecto
+function deleteProject(projectId, projectName) {
+    if (confirm(`¿Estás seguro de que quieres eliminar el proyecto "${projectName}"?\n\nEsta acción no se puede deshacer y eliminará todos los archivos asociados.`)) {
+        showNotification('Eliminando proyecto...', 'warning');
+        
+        // Usar formulario en lugar de fetch para evitar problemas de CORS
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/project/${projectId}/delete`;
+        
+        // Agregar token CSRF si está disponible
+        const csrfToken = document.querySelector('meta[name=csrf-token]');
+        if (csrfToken) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = csrfToken.getAttribute('content');
+            form.appendChild(input);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

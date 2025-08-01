@@ -1,0 +1,54 @@
+# === FRAMEWORK WEB ===
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+
+# === ANÁLISIS DE DATOS ===
+pandas==2.1.1
+numpy==1.24.3
+
+# === VISUALIZACIÓN ===
+matplotlib==3.7.2
+seaborn==0.12.2
+wordcloud==1.9.2
+plotly==5.17.0
+
+# === BASE DE DATOS ===
+PyMySQL==1.1.0
+SQLAlchemy==2.0.21
+
+# === GENERACIÓN DE REPORTES ===
+reportlab==4.0.4
+
+# === MANEJO DE ARCHIVOS ===
+openpyxl==3.1.2
+xlrd==2.0.1
+
+# === PROCESAMIENTO DE IMÁGENES ===
+Pillow==10.0.1
+
+# === CONFIGURACIÓN Y VALIDACIÓN ===
+python-dotenv==1.0.0
+email_validator==2.0.0
+
+# === VALIDACIÓN DE FORMULARIOS ===
+WTForms==3.0.1
+
+# === UTILIDADES DE SEGURIDAD ===
+Werkzeug==2.3.7
+
+# === CIENCIA DE DATOS (ESTADÍSTICAS) ===
+scipy==1.11.3
+
+# === FORMATEO DE FECHAS ===
+python-dateutil==2.8.2
+
+# === PARSEO DE ARCHIVOS CSV AVANZADO ===
+chardet==5.2.0
+
+# === VALIDACIÓN DE TIPOS DE ARCHIVO ===
+python-magic==0.4.27
+
+# === LOGGING AVANZADO ===
+colorama==0.4.6
